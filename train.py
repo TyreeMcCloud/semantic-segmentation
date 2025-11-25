@@ -14,21 +14,22 @@ def main():
 
     train_ds = TumorSegmentationDataset(TRAIN_IMG_DIR, TRAIN_JSON)
     val_ds = TumorSegmentationDataset(VAL_IMG_DIR, VAL_JSON)
-
+    print(f"Datasets loaded: {len(train_ds)} training samples, {len(val_ds)} validation samples.")
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
 
     # Move model to M1 GPU (MPS)
-    model = UNet().to(device)  # CHANGED: .cuda() -> .to(device)
+    model = UNet().to(device)
 
     # Use Dice Loss instead of BCE
     loss_fn = DiceLoss()
     optimizer = optim.Adam(model.parameters(), lr=LR)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.5, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.5)
 
     best_iou = 0.0
 
     for epoch in range(EPOCHS):
+        print(f"Epoch {epoch+1}/{EPOCHS}")
         # Training
         model.train()
         total_loss = 0

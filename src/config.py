@@ -6,7 +6,7 @@ VAL_JSON      = "Dataset/valid/_annotations.coco.json"
 
 TEST_IMG_DIR  = "Dataset/test/"
 
-IMG_SIZE = 640
-BATCH_SIZE = 4
+IMG_SIZE = 256
+BATCH_SIZE = 1
 LR = 1e-4
-EPOCHS = 25
+EPOCHS = 20
