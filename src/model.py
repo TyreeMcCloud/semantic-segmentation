@@ -61,4 +61,4 @@ class UNet(nn.Module):
         u1 = self.u1(u2)
         u1 = self.uconv1(torch.cat([u1, c1], dim=1))
 
-        return torch.sigmoid(self.output(u1))
+        return self.output(u1)

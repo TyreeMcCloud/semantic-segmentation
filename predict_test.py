@@ -1,24 +1,39 @@
 import torch
 import cv2
 import numpy as np
+import os
 from src.dataset import TumorSegmentationDataset
 from src.config import TEST_IMG_DIR
 from src.model import UNet
 
-model = UNet().cuda()
-model.load_state_dict(torch.load("model.pth"))
-model.eval()
+def predict_test_set():
 
-test_ds = TumorSegmentationDataset(TEST_IMG_DIR)
+    device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    print(f"Using device: {device}")
 
-for img, filename in test_ds:
-    img_gpu = img.unsqueeze(0).cuda()
+    # Create output directory
+    os.makedirs("pred_masks", exist_ok=True)
 
-    with torch.no_grad():
-        pred = model(img_gpu)[0][0].cpu().numpy()
+    # Load model
+    model = UNet().to(device)
+    model.load_state_dict(torch.load("best_model.pth", map_location=device))
+    model.eval()
 
-    pred_mask = (pred > 0.5).astype(np.uint8) * 255
 
-    cv2.imwrite(f"pred_masks/{filename}", pred_mask)
+    test_ds = TumorSegmentationDataset(TEST_IMG_DIR)
 
-print("Saved predictions to pred_masks/")
+    for i in range(len(test_ds)):
+        img, filename = test_ds[i]
+        img_device = img.unsqueeze(0).to(device)
+
+        with torch.no_grad():
+            pred = torch.sigmoid(model(img_device))[0][0].cpu().numpy()
+
+        pred_mask = (pred > 0.5).astype(np.uint8) * 255
+
+        # Save predicted mask
+        output_path = f"pred_masks/{filename}"
+        cv2.imwrite(output_path, pred_mask)
+        print(f"Saved: {output_path}")
+
+    print(f"Saved {len(test_ds)} predictions to pred_masks/")

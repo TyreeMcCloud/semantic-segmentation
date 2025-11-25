@@ -21,11 +21,13 @@ class TumorSegmentationDataset(Dataset):
             self.image_info = self.annotations["images"]
             self.ann = self.annotations["annotations"]
         else:
-            # test set (no labels)
-            self.image_info = [{"file_name": x} for x in os.listdir(img_dir) if x.endswith(".jpg")]
+            self.image_files = [x for x in os.listdir(img_dir) if x.endswith(".jpg")]
 
     def __len__(self):
-        return len(self.image_info)
+        if self.has_labels:
+            return len(self.image_info)
+        else:
+            return len(self.image_files)
 
     def load_mask(self, img_id, h, w):
         mask = np.zeros((h, w), dtype=np.uint8)
@@ -39,8 +41,12 @@ class TumorSegmentationDataset(Dataset):
         return mask
 
     def __getitem__(self, idx):
-        info = self.image_info[idx]
-        img_path = os.path.join(self.img_dir, info["file_name"])
+        if self.has_labels:
+            info = self.image_info[idx]
+            img_path = os.path.join(self.img_dir, info["file_name"])
+        else:
+            filename = self.image_files[idx]
+            img_path = os.path.join(self.img_dir, filename)
 
         image = Image.open(img_path).convert("RGB")
         image = image.resize((640, 640))
@@ -56,4 +62,4 @@ class TumorSegmentationDataset(Dataset):
         if self.has_labels:
             return image, mask
         else:
-            return image, info["file_name"]
+            return image, filename
