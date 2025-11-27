@@ -16,7 +16,7 @@ def predict_test_set():
 
     # Load model
     model = UNet().to(device)
-    model.load_state_dict(torch.load("best_model.pth", map_location=device))
+    model.load_state_dict(torch.load("final_model.pth", map_location=device))
     model.eval()
 
 
@@ -37,3 +37,6 @@ def predict_test_set():
         print(f"Saved: {output_path}")
 
     print(f"Saved {len(test_ds)} predictions to pred_masks/")
+
+if __name__ == "__main__":
+    predict_test_set()
