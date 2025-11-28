@@ -1,5 +1,22 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+def clean_prediction(pred_bin, min_cluster_size=9):
+    """
+    Removes small speckle blobs from a binary mask.
+    Works for batches of shape (B, 1, H, W).
+    """
+    # Count neighbors using a 3x3 kernel
+    kernel = torch.ones((1, 1, 3, 3), device=pred_bin.device)
+
+    # Convolution counts how many pixels in every 3x3 window are active
+    neighbor_count = F.conv2d(pred_bin, kernel, padding=1)
+
+    # Keep only pixels that belong to clusters of size >= min_cluster_size
+    pred_clean = (neighbor_count >= min_cluster_size).float()
+
+    return pred_clean
 
 THRESHOLD = 0.2
 class DiceLoss(nn.Module):
@@ -22,7 +39,11 @@ class DiceLoss(nn.Module):
 
 # In metrics.py, add to dice_coefficient:
 def dice_coefficient(predictions, targets, smooth=1e-6):
+    # pred_binary = (torch.sigmoid(predictions) > THRESHOLD).float()
+
     pred_binary = (torch.sigmoid(predictions) > THRESHOLD).float()
+    pred_binary = clean_prediction(pred_binary)
+
     pred_flat = pred_binary.contiguous().view(-1)
     target_flat = targets.contiguous().view(-1)
     
@@ -40,14 +61,22 @@ def dice_coefficient(predictions, targets, smooth=1e-6):
 
 # IoU metric
 def iou(pred, mask):
-    pred = (torch.sigmoid(pred) > THRESHOLD).float()
+   # pred = (torch.sigmoid(pred) > THRESHOLD).float()
+
+    pred_bin = (torch.sigmoid(pred) > THRESHOLD).float()
+    pred = clean_prediction(pred_bin)
+
     intersection = (pred * mask).sum(dim=[1, 2, 3])
     union = pred.sum(dim=[1, 2, 3]) + mask.sum(dim=[1, 2, 3]) - intersection
     iou = (intersection / (union + 1e-6)).mean()
     return iou.item()
 # Pixel Accuracy metric
 def pixel_accuracy(pred, mask):
-    pred = (torch.sigmoid(pred) > THRESHOLD).float()
+    #pred = (torch.sigmoid(pred) > THRESHOLD).float()
+
+    pred_bin = (torch.sigmoid(pred) > THRESHOLD).float()
+    pred = clean_prediction(pred_bin)
+
     correct = (pred == mask).float().sum(dim=[1, 2, 3])
     total = mask[0].numel()
     accuracy = correct.mean() / total

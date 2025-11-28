@@ -5,6 +5,7 @@ import os
 from src.dataset import TumorSegmentationDataset
 from src.config import TEST_IMG_DIR
 from src.model import UNet
+from src.metrics import clean_prediction, THRESHOLD 
 
 def predict_test_set():
 
@@ -27,9 +28,12 @@ def predict_test_set():
         img_device = img.unsqueeze(0).to(device)
 
         with torch.no_grad():
-            pred = torch.sigmoid(model(img_device))[0][0].cpu().numpy()
+            pred = model(img_device)                # raw logits
+            sig = torch.sigmoid(pred)               # sigmoid
+            pred_bin = (sig > THRESHOLD).float()    # thresholded
+            pred_clean = clean_prediction(pred_bin)
 
-        pred_mask = (pred > 0.5).astype(np.uint8) * 255
+        pred_mask = (pred_clean[0][0].cpu().numpy() * 255).astype(np.uint8)
 
         # Save predicted mask
         output_path = f"pred_masks/{filename}"
