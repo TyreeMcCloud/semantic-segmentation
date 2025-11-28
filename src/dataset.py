@@ -17,7 +17,7 @@ class TumorSegmentationDataset(Dataset):
                 self.data = json.load(f)
             self.images = self.data["images"]
             self.annotations = self.data["annotations"]
-            
+
             # Create mapping from image id to annotations
             self.img_to_anns = {}
             for ann in self.annotations:
@@ -25,7 +25,7 @@ class TumorSegmentationDataset(Dataset):
                 if img_id not in self.img_to_anns:
                     self.img_to_anns[img_id] = []
                 self.img_to_anns[img_id].append(ann)
-                
+
             print(f"Loaded {len(self.images)} images, {len(self.annotations)} annotations")
         else:
             self.images = [{"file_name": f, "id": i} for i, f in enumerate(os.listdir(img_dir)) if f.endswith(".jpg")]
@@ -44,15 +44,15 @@ class TumorSegmentationDataset(Dataset):
                 for seg in ann["segmentation"]:
                     if isinstance(seg, list) and len(seg) >= 6:  # Valid polygon
                         poly = np.array(seg, dtype=np.float32).reshape(-1, 2)
-                        
+
                         # Scale coordinates
                         scale_x = self.img_size / orig_w
                         scale_y = self.img_size / orig_h
                         poly[:, 0] *= scale_x
                         poly[:, 1] *= scale_y
-                        
+
                         cv2.fillPoly(mask, [poly.astype(np.int32)], 1)
-        
+
         return mask
 
     def __getitem__(self, idx):
@@ -69,7 +69,7 @@ class TumorSegmentationDataset(Dataset):
             img = torch.tensor(img, dtype=torch.float32).permute(2, 0, 1) / 255.0
 
         except Exception as e:
-            print(f"❌ Error loading image {filename}: {e}")
+            print(f"Error loading image {filename}: {e}")
             # Return a blank image or skip
             img = torch.zeros((3, self.img_size, self.img_size), dtype=torch.float32)
             if self.has_labels:

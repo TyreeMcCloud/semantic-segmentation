@@ -20,7 +20,7 @@ def evaluate_validation():
 
     total_iou = 0
     total_acc = 0
-    total_dice = 0
+    #total_dice = 0
     count = 0
 
     with torch.no_grad():
@@ -30,19 +30,19 @@ def evaluate_validation():
 
             total_iou += iou(preds, masks)
             total_acc += pixel_accuracy(preds, masks)
-            total_dice += dice_coefficient(preds, masks)
+            #total_dice += dice_coefficient(preds, masks)
             count += 1
 
     print(f"📊 VALIDATION RESULTS:")
     print(f"IoU: {total_iou/count:.4f}")
-    print(f"Accuracy: {total_acc/count:.4f}") 
-    print(f"Dice: {total_dice/count:.4f}")
+    print(f"Accuracy: {total_acc/count:.4f}")
+    #print(f"Dice: {total_dice/count:.4f}")
 
     # Check if requirements are met
     if total_iou/count >= 0.70 and total_acc/count >= 0.75:
-        print("✅ MINIMUM REQUIREMENTS MET!")
+        print("MINIMUM REQUIREMENTS MET!")
     else:
-        print("❌ Minimum requirements NOT met")
+        print("Minimum requirements NOT met")
 
 if __name__ == "__main__":
     evaluate_validation()

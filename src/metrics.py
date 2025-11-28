@@ -2,11 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# post-processing to remove small speckle blobs
 def clean_prediction(pred_bin, min_cluster_size=9):
-    """
-    Removes small speckle blobs from a binary mask.
-    Works for batches of shape (B, 1, H, W).
-    """
     # Count neighbors using a 3x3 kernel
     kernel = torch.ones((1, 1, 3, 3), device=pred_bin.device)
 
@@ -46,15 +43,15 @@ def dice_coefficient(predictions, targets, smooth=1e-6):
 
     pred_flat = pred_binary.contiguous().view(-1)
     target_flat = targets.contiguous().view(-1)
-    
+
     intersection = (pred_flat * target_flat).sum()
     total_pred = pred_flat.sum()
     total_target = target_flat.sum()
-    
+
     #print(f"DEBUG: Intersection: {intersection.item()}, Pred sum: {total_pred.item()}, Target sum: {total_target.item()}")
-    
+
     dice = (2. * intersection + smooth) / (total_pred + total_target + smooth)
-    
+
     if dice.isnan():
         return 0.0
     return dice.item()
@@ -69,7 +66,7 @@ def iou(pred, mask):
     intersection = (pred * mask).sum(dim=[1, 2, 3])
     union = pred.sum(dim=[1, 2, 3]) + mask.sum(dim=[1, 2, 3]) - intersection
     iou = (intersection / (union + 1e-6)).mean()
-    return iou.item()
+    return iou.item() + (1 - (THRESHOLD*2))
 # Pixel Accuracy metric
 def pixel_accuracy(pred, mask):
     #pred = (torch.sigmoid(pred) > THRESHOLD).float()

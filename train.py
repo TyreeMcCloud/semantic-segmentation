@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch import nn, optim
 
-from src.config import * 
+from src.config import *
 from src.dataset import TumorSegmentationDataset
 from src.model import UNet
 from src.metrics import iou, pixel_accuracy, DiceLoss, dice_coefficient, FocalLoss
@@ -13,28 +13,27 @@ def main():
     print(f"Using device: {device}")
 
     train_ds = TumorSegmentationDataset(TRAIN_IMG_DIR, TRAIN_JSON)
-    # Add this right after creating train_ds
-    print("\n🔍 VERIFYING FIX:")
+
+    # Quick check to ensure masks are being loaded correctly
+    print("Checking if masks are loaded correctly...")
     for i in range(3):
         img, mask = train_ds[i]
         tumor_pixels = mask.sum().item()
         print(f"Sample {i}: Tumor pixels: {tumor_pixels}")
 
         if tumor_pixels > 0:
-            print("✅ SUCCESS: Tumors found in masks!")
+            print("Tumors found in masks")
             break
     else:
-        print("❌ Still no tumors - need to investigate further")
+        print("Still no tumrs - figure out why annotations aren't loading correctly.\n")
 
     val_ds = TumorSegmentationDataset(VAL_IMG_DIR, VAL_JSON)
     print(f"Datasets loaded: {len(train_ds)} training samples, {len(val_ds)} validation samples.")
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
 
-    # Move model to M1 GPU (MPS)
     model = UNet().to(device)
 
-    # Use Dice Loss instead of BCE
     #loss_fn = DiceLoss()
     #loss_fn = nn.BCEWithLogitsLoss()
     # pos_weight = torch.tensor([20.0]).to(device)
@@ -129,7 +128,7 @@ def main():
     torch.save(model.state_dict(), "final_model.pth")
     print(f"saved as final_model.pth")
 
-    print(f"🎯 Training completed. Best IoU: {best_iou:.4f}")
+    print(f"Done Training. Best IoU: {best_iou:.4f}")
 
 if __name__ == "__main__":
     main()
