@@ -5,14 +5,14 @@ from torch import nn, optim
 from src.config import *
 from src.dataset import TumorSegmentationDataset
 from src.model import UNet
-from src.metrics import iou, pixel_accuracy, DiceLoss, dice_coefficient, FocalLoss
+from src.metrics import iou, pixel_accuracy, DiceLoss, dice_coefficient, FocalLoss, CombinedLoss
 
 def main():
-    # Set device for M1 Mac
+
     device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    train_ds = TumorSegmentationDataset(TRAIN_IMG_DIR, TRAIN_JSON)
+    train_ds = TumorSegmentationDataset(TRAIN_IMG_DIR, TRAIN_JSON, augment=True)
 
     # Quick check to ensure masks are being loaded correctly
     print("Checking if masks are loaded correctly...")
@@ -27,7 +27,7 @@ def main():
     else:
         print("Still no tumrs - figure out why annotations aren't loading correctly.\n")
 
-    val_ds = TumorSegmentationDataset(VAL_IMG_DIR, VAL_JSON)
+    val_ds = TumorSegmentationDataset(VAL_IMG_DIR, VAL_JSON, augment=False)
     print(f"Datasets loaded: {len(train_ds)} training samples, {len(val_ds)} validation samples.")
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
@@ -36,9 +36,10 @@ def main():
 
     #loss_fn = DiceLoss()
     #loss_fn = nn.BCEWithLogitsLoss()
-    # pos_weight = torch.tensor([20.0]).to(device)
-    # loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    loss_fn = FocalLoss(alpha=0.9, gamma=1.5)
+    #pos_weight = torch.tensor([50.0]).to(device)
+    #loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    loss_fn = FocalLoss(alpha=.95, gamma=4.0)
+    #loss_fn = CombinedLoss(bce_weight=0.9, dice_weight=0.1)
 
     optimizer = optim.Adam(model.parameters(), lr=LR)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.5)
@@ -58,7 +59,6 @@ def main():
             masks = masks.to(device)
 
             preds = model(imgs)
-            # Add inside your training loop, after preds = model(imgs)
             # if epoch == 0 and train_batches == 0:  # Only first batch of first epoch
             #   print(f"First batch - Pred range: [{preds.min().item():.3f}, {preds.max().item():.3f}]")
             #   print(f"First batch - After sigmoid: [{torch.sigmoid(preds).min().item():.3f}, {torch.sigmoid(preds).max().item():.3f}]")

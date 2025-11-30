@@ -5,12 +5,14 @@ from PIL import Image
 import numpy as np
 import cv2
 import json
+import random
 
 class TumorSegmentationDataset(Dataset):
-    def __init__(self, img_dir, json_path=None, img_size=256):
+    def __init__(self, img_dir, json_path=None, img_size=256, augment=False):
         self.img_dir = img_dir
         self.img_size = img_size
         self.has_labels = json_path is not None
+        self.augment = augment
 
         if self.has_labels:
             with open(json_path, "r") as f:
@@ -35,10 +37,10 @@ class TumorSegmentationDataset(Dataset):
 
     def load_mask(self, img_id, orig_w, orig_h):
         mask = np.zeros((self.img_size, self.img_size), dtype=np.uint8)
-        
+
         # Get annotations for this image
         anns = self.img_to_anns.get(img_id, [])
-        
+
         for ann in anns:
             if 'segmentation' in ann and ann['segmentation']:
                 for seg in ann["segmentation"]:
@@ -55,6 +57,21 @@ class TumorSegmentationDataset(Dataset):
 
         return mask
 
+    def random_flip_rotate(self, image, mask):
+        # image, mask are numpy arrays
+        if random.random() < 0.5:
+            image = np.flipud(image)  # Vertical flip
+            mask = np.flipud(mask)
+        if random.random() < 0.5:
+            image = np.fliplr(image)  # Horizontal flip
+            mask = np.fliplr(mask)
+        # random 90-degree rotations
+        k = random.randint(0, 3)
+        if k:
+            image = np.rot90(image, k)
+            mask = np.rot90(mask, k)
+        return image.copy(), mask.copy()
+
     def __getitem__(self, idx):
         info = self.images[idx]
         filename = info["file_name"]
@@ -65,7 +82,20 @@ class TumorSegmentationDataset(Dataset):
             img = Image.open(img_path).convert("RGB")
             orig_w, orig_h = img.size
             img = img.resize((self.img_size, self.img_size))
-            img = np.array(img)
+            img = np.array(img)  # Keep as numpy for augmentation
+
+            if self.has_labels:
+                img_id = info["id"]
+                mask = self.load_mask(img_id, orig_w, orig_h)
+
+
+                if self.augment:
+                    img, mask = self.random_flip_rotate(img, mask)
+
+                # Convert to tensors AFTER augmentation
+                mask = torch.tensor(mask, dtype=torch.float32).unsqueeze(0)
+
+            # Convert image to tensor
             img = torch.tensor(img, dtype=torch.float32).permute(2, 0, 1) / 255.0
 
         except Exception as e:
@@ -79,9 +109,6 @@ class TumorSegmentationDataset(Dataset):
                 return img, filename
 
         if self.has_labels:
-            img_id = info["id"]
-            mask = self.load_mask(img_id, orig_w, orig_h)
-            mask = torch.tensor(mask, dtype=torch.float32).unsqueeze(0)
             return img, mask
         else:
             return img, filename

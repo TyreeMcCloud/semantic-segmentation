@@ -6,8 +6,10 @@ class DoubleConv(nn.Module):
         super().__init__()
         self.block = nn.Sequential(
             nn.Conv2d(in_c, out_c, 3, padding=1),
+            nn.BatchNorm2d(out_c),
             nn.ReLU(inplace=True),
             nn.Conv2d(out_c, out_c, 3, padding=1),
+            nn.BatchNorm2d(out_c),
             nn.ReLU(inplace=True)
         )
 
@@ -18,28 +20,31 @@ class UNet(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.d1 = DoubleConv(3, 64)
-        self.d2 = DoubleConv(64, 128)
-        self.d3 = DoubleConv(128, 256)
-        self.d4 = DoubleConv(256, 512)
+
+        self.d1 = DoubleConv(3, 32)
+        self.d2 = DoubleConv(32, 64)
+        self.d3 = DoubleConv(64, 128)
+        self.d4 = DoubleConv(128, 256)
 
         self.pool = nn.MaxPool2d(2)
 
-        self.bottleneck = DoubleConv(512, 1024)
+        # Bottleneck - smaller and more efficient
+        self.bottleneck = DoubleConv(256, 512)
 
-        self.u4 = nn.ConvTranspose2d(1024, 512, 2, stride=2)
-        self.uconv4 = DoubleConv(1024, 512)
+        # Decoder - match encoder sizes
+        self.u4 = nn.ConvTranspose2d(512, 256, 2, stride=2)
+        self.uconv4 = DoubleConv(512, 256)
 
-        self.u3 = nn.ConvTranspose2d(512, 256, 2, stride=2)
-        self.uconv3 = DoubleConv(512, 256)
+        self.u3 = nn.ConvTranspose2d(256, 128, 2, stride=2)
+        self.uconv3 = DoubleConv(256, 128)
 
-        self.u2 = nn.ConvTranspose2d(256, 128, 2, stride=2)
-        self.uconv2 = DoubleConv(256, 128)
+        self.u2 = nn.ConvTranspose2d(128, 64, 2, stride=2)
+        self.uconv2 = DoubleConv(128, 64)
 
-        self.u1 = nn.ConvTranspose2d(128, 64, 2, stride=2)
-        self.uconv1 = DoubleConv(128, 64)
+        self.u1 = nn.ConvTranspose2d(64, 32, 2, stride=2)
+        self.uconv1 = DoubleConv(64, 32)
 
-        self.output = nn.Conv2d(64, 1, 1)
+        self.output = nn.Conv2d(32, 1, 1)
 
     def forward(self, x):
         c1 = self.d1(x)
