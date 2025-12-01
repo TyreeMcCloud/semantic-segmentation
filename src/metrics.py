@@ -7,7 +7,7 @@ def clean_prediction(pred_bin, min_cluster_size=7, erosion_strength=1):
     # -----------------------------
     # Connected Component Cleanup
     # -----------------------------
-    # label connected components with convolution (pseudo-CC)
+    # label connected components with convolution
     kernel = torch.ones((1, 1, 3, 3), device=pred_bin.device)
     neighbor_count = F.conv2d(pred_bin, kernel, padding=1)
 
@@ -15,16 +15,16 @@ def clean_prediction(pred_bin, min_cluster_size=7, erosion_strength=1):
     pred_clean = (neighbor_count >= min_cluster_size).float()
 
     # -----------------------------
-    # Heavy Erosion (shrinks big tumor)
+    # Heavy Erosion
     # -----------------------------
     for _ in range(erosion_strength):
         neighbor_count = F.conv2d(pred_clean, kernel, padding=1)
-        # require ≥6 neighbors to survive → strong shrinkage
+        # require ≥6 neighbors to survive strong shrinkage
         pred_clean = (neighbor_count >= 6).float()
 
     return pred_clean
 
-THRESHOLD = 0.5
+THRESHOLD = 0.15
 class DiceLoss(nn.Module):
     def __init__(self, smooth=1e-6):
         super(DiceLoss, self).__init__()

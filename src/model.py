@@ -28,10 +28,10 @@ class UNet(nn.Module):
 
         self.pool = nn.MaxPool2d(2)
 
-        # Bottleneck - smaller and more efficient
+        # Bottleneck
         self.bottleneck = DoubleConv(256, 512)
 
-        # Decoder - match encoder sizes
+        # Decoder
         self.u4 = nn.ConvTranspose2d(512, 256, 2, stride=2)
         self.uconv4 = DoubleConv(512, 256)
 

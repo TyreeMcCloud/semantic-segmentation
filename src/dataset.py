@@ -44,7 +44,7 @@ class TumorSegmentationDataset(Dataset):
         for ann in anns:
             if 'segmentation' in ann and ann['segmentation']:
                 for seg in ann["segmentation"]:
-                    if isinstance(seg, list) and len(seg) >= 6:  # Valid polygon
+                    if isinstance(seg, list) and len(seg) >= 6:
                         poly = np.array(seg, dtype=np.float32).reshape(-1, 2)
 
                         # Scale coordinates
@@ -78,7 +78,7 @@ class TumorSegmentationDataset(Dataset):
         img_path = os.path.join(self.img_dir, filename)
 
         try:
-            # Load and resize image with error handling
+            # Load and resize image
             img = Image.open(img_path).convert("RGB")
             orig_w, orig_h = img.size
             img = img.resize((self.img_size, self.img_size))
@@ -88,25 +88,18 @@ class TumorSegmentationDataset(Dataset):
                 img_id = info["id"]
                 mask = self.load_mask(img_id, orig_w, orig_h)
 
-
                 if self.augment:
                     img, mask = self.random_flip_rotate(img, mask)
 
-                # Convert to tensors AFTER augmentation
                 mask = torch.tensor(mask, dtype=torch.float32).unsqueeze(0)
 
             # Convert image to tensor
             img = torch.tensor(img, dtype=torch.float32).permute(2, 0, 1) / 255.0
 
         except Exception as e:
-            print(f"Error loading image {filename}: {e}")
-            # Return a blank image or skip
-            img = torch.zeros((3, self.img_size, self.img_size), dtype=torch.float32)
-            if self.has_labels:
-                mask = torch.zeros((1, self.img_size, self.img_size), dtype=torch.float32)
-                return img, mask
-            else:
-                return img, filename
+            print(f"Skipping image {filename}: {e}")
+            # Recursively try the next image
+            return self.__getitem__((idx + 1) % len(self.images))
 
         if self.has_labels:
             return img, mask
