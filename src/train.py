@@ -2,10 +2,10 @@ import torch
 from torch.utils.data import DataLoader
 from torch import nn, optim
 
-from src.config import *
-from src.dataset import TumorSegmentationDataset
-from src.model import UNet
-from src.metrics import iou, pixel_accuracy, DiceLoss, dice_coefficient, FocalLoss, CombinedLoss
+from config import *
+from dataset import TumorSegmentationDataset
+from model import UNet
+from metrics import iou, pixel_accuracy, DiceLoss, dice_coefficient, FocalLoss, CombinedLoss
 
 def main():
 

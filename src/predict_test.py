@@ -2,10 +2,10 @@ import torch
 import cv2
 import numpy as np
 import os
-from src.dataset import TumorSegmentationDataset
-from src.config import TEST_IMG_DIR
-from src.model import UNet
-from src.metrics import clean_prediction, THRESHOLD
+from dataset import TumorSegmentationDataset
+from config import TEST_IMG_DIR
+from model import UNet
+from metrics import clean_prediction, THRESHOLD
 
 def predict_test_set():
 
